@@ -46,42 +46,33 @@ NeoRelayBoardNode::NeoRelayBoardNode(): Node("neo_relayboard_node")
 	// Declare Parameters for getting the data from the parameter server
 
     this->declare_parameter<std::string>("port", "random");
-    this->declare_parameter<std::string>("battery/serial_number", "random");
-    this->declare_parameter<std::string>("battery/location", "random");
-    this->declare_parameter<float>("battery/design_capacity", 2.0);
-    this->declare_parameter<int>("battery/chemistry", 3);
+    this->declare_parameter<std::string>("battery.serial_number", "random");
+    this->declare_parameter<std::string>("battery.location", "random");
+    this->declare_parameter<float>("battery.design_capacity", 2.0);
+    this->declare_parameter<int>("battery.chemistry", 3);
     this->declare_parameter<bool>("log", 0);
     this->declare_parameter<bool>("Publish_joint_states", 0);
-
-    for (int i = 0; i < 8; ++i)
-	{
-
-		const std::string parent = "drive" + std::to_string(i + 2) + ".";
-
-		this->declare_parameter(parent + "motor_active");
-		this->declare_parameter(parent + "homing_active");
-		this->declare_parameter(parent + "EncIncrPerRevMot");
-		this->declare_parameter(parent + "VelMeasFrqHz");
-		this->declare_parameter(parent + "GearRatio");
-		this->declare_parameter(parent + "BeltRatio");
-		this->declare_parameter(parent + "Sign");
-		this->declare_parameter(parent + "VelMaxEncIncrS");
-		this->declare_parameter(parent + "VelPModeEncIncrS");
-		this->declare_parameter(parent + "AccIncrS2");
-		this->declare_parameter(parent + "DecIncrS2");
-		this->declare_parameter(parent + "Modulo");
-		this->declare_parameter(parent+ "joint_name");
-
-		m_Drives[i].sName = "Joint999";
-	}
-
-	this->declare_parameter("motor_delay");
-	this->declare_parameter("trajectory_timeout");
-
-	this->get_parameter_or("motor_delay", m_tMotorDelay, 0.0);
-	this->get_parameter_or("trajectory_timeout", m_trajectory_timeout, 1.);
-	this->get_parameter_or("Publish_joint_states", m_JointStates, true);
-
+    this->declare_parameter<bool>("ioboard.active", 0);
+	this->declare_parameter<bool>("usboard.active", 0);
+	this->declare_parameter<bool>("usboard.sensor1_active", 0);
+	this->declare_parameter<bool>("usboard.sensor2_active", 0);
+	this->declare_parameter<bool>("usboard.sensor3_active", 0);
+	this->declare_parameter<bool>("usboard.sensor4_active", 0);
+	this->declare_parameter<bool>("usboard.sensor5_active", 0);
+	this->declare_parameter<bool>("usboard.sensor6_active", 0);
+	this->declare_parameter<bool>("usboard.sensor7_active", 0);
+	this->declare_parameter<bool>("usboard.sensor8_active", 0);
+	this->declare_parameter<bool>("usboard.sensor9_active", 0);
+	this->declare_parameter<bool>("usboard.sensor10_active",0);
+	this->declare_parameter<bool>("usboard.sensor11_active",0);
+	this->declare_parameter<bool>("usboard.sensor12_active",0);
+	this->declare_parameter<bool>("usboard.sensor13_active",0);
+	this->declare_parameter<bool>("usboard.sensor14_active",0);
+	this->declare_parameter<bool>("usboard.sensor15_active",0);
+	this->declare_parameter<bool>("usboard.sensor16_active",0);
+	this->declare_parameter<int>("number_of_drives", 8);
+	this->declare_parameter<double>("motor_delay", 0.0);
+	this->declare_parameter<double>("trajectory_timeout", 0.0);
 }
 
 NeoRelayBoardNode::~NeoRelayBoardNode()
@@ -113,64 +104,83 @@ int NeoRelayBoardNode::init()
 	std::cout << "                                                                     "<<std::endl;
 	
 	//---------------------------------------- GET PARAMS -----------------------------------------------------------
+	this->get_parameter_or("motor_delay", m_tMotorDelay, 0.0);
+	this->get_parameter_or("trajectory_timeout", m_trajectory_timeout, 1.);
+	this->get_parameter_or("number_of_drives", m_drivesNr, 8);
 
 	// Battery
 
-	this->get_parameter("battery/serial_number", m_sBatterySerialNumber);
-	this->get_parameter("battery/location", m_sBatteryLocation);
-	this->get_parameter("battery/design_capacity", m_fBatteryDesignCapacity);
-	this->get_parameter("battery/chemistry", m_iBatteryChemistry);
+	this->get_parameter("battery.serial_number", m_sBatterySerialNumber);
+	this->get_parameter("battery.location", m_sBatteryLocation);
+	this->get_parameter("battery.design_capacity", m_fBatteryDesignCapacity);
+	this->get_parameter("battery.chemistry", m_iBatteryChemistry);
 
 	// Logging
 	this->get_parameter("log", m_bLog);
 
 	// IOBOard Parameter
-	this->get_parameter_or("ioboard/active", m_bIOBoardActive, false);
+	this->get_parameter("ioboard.active", m_bIOBoardActive);
+
+	// Joint states
+	this->get_parameter("Publish_joint_states", m_JointStates);
 
 	// USBOard Parameter
-	this->get_parameter_or("usboard/active", m_bUSBoardActive, false);
-	this->get_parameter_or("usboard/sensor1_active", m_bUSBoardSensorActive[0], false);
-	this->get_parameter_or("usboard/sensor2_active", m_bUSBoardSensorActive[1], false);
-	this->get_parameter_or("usboard/sensor3_active", m_bUSBoardSensorActive[2], false);
-	this->get_parameter_or("usboard/sensor4_active", m_bUSBoardSensorActive[3], false);
-	this->get_parameter_or("usboard/sensor5_active", m_bUSBoardSensorActive[4], false);
-	this->get_parameter_or("usboard/sensor6_active", m_bUSBoardSensorActive[5], false);
-	this->get_parameter_or("usboard/sensor7_active", m_bUSBoardSensorActive[6], false);
-	this->get_parameter_or("usboard/sensor8_active", m_bUSBoardSensorActive[7], false);
-	this->get_parameter_or("usboard/sensor9_active", m_bUSBoardSensorActive[8], false);
-	this->get_parameter_or("usboard/sensor10_active", m_bUSBoardSensorActive[9], false);
-	this->get_parameter_or("usboard/sensor11_active", m_bUSBoardSensorActive[10], false);
-	this->get_parameter_or("usboard/sensor12_active", m_bUSBoardSensorActive[11], false);
-	this->get_parameter_or("usboard/sensor13_active", m_bUSBoardSensorActive[12], false);
-	this->get_parameter_or("usboard/sensor14_active", m_bUSBoardSensorActive[13], false);
-	this->get_parameter_or("usboard/sensor15_active", m_bUSBoardSensorActive[14], false);
-	this->get_parameter_or("usboard/sensor16_active", m_bUSBoardSensorActive[15], false);
+	this->get_parameter("usboard.active", m_bUSBoardActive);
+	this->get_parameter("usboard.sensor1_active", m_bUSBoardSensorActive[0]);
+	this->get_parameter("usboard.sensor2_active", m_bUSBoardSensorActive[1]);
+	this->get_parameter("usboard.sensor3_active", m_bUSBoardSensorActive[2]);
+	this->get_parameter("usboard.sensor4_active", m_bUSBoardSensorActive[3]);
+	this->get_parameter("usboard.sensor5_active", m_bUSBoardSensorActive[4]);
+	this->get_parameter("usboard.sensor6_active", m_bUSBoardSensorActive[5]);
+	this->get_parameter("usboard.sensor7_active", m_bUSBoardSensorActive[6]);
+	this->get_parameter("usboard.sensor8_active", m_bUSBoardSensorActive[7]);
+	this->get_parameter("usboard.sensor9_active", m_bUSBoardSensorActive[8]);
+	this->get_parameter("usboard.sensor10_active", m_bUSBoardSensorActive[9]);
+	this->get_parameter("usboard.sensor11_active", m_bUSBoardSensorActive[10]);
+	this->get_parameter("usboard.sensor12_active", m_bUSBoardSensorActive[11]);
+	this->get_parameter("usboard.sensor13_active", m_bUSBoardSensorActive[12]);
+	this->get_parameter("usboard.sensor14_active", m_bUSBoardSensorActive[13]);
+	this->get_parameter("usboard.sensor15_active", m_bUSBoardSensorActive[14]);
+	this->get_parameter("usboard.sensor16_active", m_bUSBoardSensorActive[15]);
 
 	// Motor Parameter
-	for (int i = 0; i < 8; ++i)
+	for (int i = 0; i < m_drivesNr; ++i)
 	{
-
 		const std::string parent = "drive" + std::to_string(i + 2) + ".";
 
+		// Declaring parameters
+		this->declare_parameter<bool>(parent + "motor_active", false);
+		this->declare_parameter<bool>(parent + "homing_active", false);
+		this->declare_parameter<int>(parent + "EncIncrPerRevMot", 0);
+		this->declare_parameter<double>(parent + "VelMeasFrqHz", 0.0);
+		this->declare_parameter<double>(parent + "GearRatio", 0.0);
+		this->declare_parameter<double>(parent + "BeltRatio", 0.0);
+		this->declare_parameter<int>(parent + "Sign", 0);
+		this->declare_parameter<double>(parent + "VelMaxEncIncrS", 0.0);
+		this->declare_parameter<double>(parent + "VelPModeEncIncrS", 0.0);
+		this->declare_parameter<double>(parent + "AccIncrS2", 0.0);
+		this->declare_parameter<double>(parent + "DecIncrS2", 0.0);
+		this->declare_parameter<double>(parent + "Modulo", 0.0);
+		this->declare_parameter<std::string>(parent+ "joint_name", "Joint999");
+		m_Drives[i].sName = "Joint999";
+
+		// getting parameters
 		this->get_parameter(parent + "motor_active", m_Drives[i].bmotor_active);
 		this->get_parameter(parent + "homing_active", m_Drives[i].bhoming_active);
-		this->get_parameter_or(parent + "EncIncrPerRevMot", m_Drives[i].iEncIncrPerRevMot, 0);
-		this->get_parameter_or(parent + "VelMeasFrqHz", m_Drives[i].dVelMeasFrqHz, 0.0);
-		this->get_parameter_or(parent + "GearRatio", m_Drives[i].dGearRatio, 0.0);
-		this->get_parameter_or(parent + "BeltRatio", m_Drives[i].dBeltRatio, 0.0);
-		this->get_parameter_or(parent + "Sign", m_Drives[i].iSign, 0);
-		this->get_parameter_or(parent + "VelMaxEncIncrS", m_Drives[i].dVelMaxEncIncrS, 0.0);
-		this->get_parameter_or(parent + "VelPModeEncIncrS", m_Drives[i].dVelPModeEncIncrS, 0.0);
-		this->get_parameter_or(parent + "AccIncrS2", m_Drives[i].dAccIncrS2, 0.0);
-		this->get_parameter_or(parent + "DecIncrS2", m_Drives[i].dDecIncrS2, 0.0);
-		this->get_parameter_or(parent + "Modulo", m_Drives[i].dModulo, 0.0);
+		this->get_parameter(parent + "EncIncrPerRevMot", m_Drives[i].iEncIncrPerRevMot);
+		this->get_parameter(parent + "VelMeasFrqHz", m_Drives[i].dVelMeasFrqHz);
+		this->get_parameter(parent + "GearRatio", m_Drives[i].dGearRatio);
+		this->get_parameter(parent + "BeltRatio", m_Drives[i].dBeltRatio);
+		this->get_parameter(parent + "Sign", m_Drives[i].iSign);
+		this->get_parameter(parent + "VelMaxEncIncrS", m_Drives[i].dVelMaxEncIncrS);
+		this->get_parameter(parent + "VelPModeEncIncrS", m_Drives[i].dVelPModeEncIncrS);
+		this->get_parameter(parent + "AccIncrS2", m_Drives[i].dAccIncrS2);
+		this->get_parameter(parent + "DecIncrS2", m_Drives[i].dDecIncrS2);
+		this->get_parameter(parent + "Modulo", m_Drives[i].dModulo);
 		this->get_parameter(parent + "joint_name", m_Drives[i].sName);
 
 		m_Drives[i].calcRadToIncr();
 	}
-
-	this->get_parameter_or("motor_delay", m_tMotorDelay, 0.0);
-	this->get_parameter_or("trajectory_timeout", m_trajectory_timeout, 1.);
 
 	// Check which motors are active
 	if (m_Drives[0].bmotor_active)
@@ -330,24 +340,24 @@ int NeoRelayBoardNode::init()
 
 	if (m_iactive_motors != 0)
 	{
-		topicPub_drives = this->create_publisher<sensor_msgs::msg::JointState>("/drives/joint_states", 1);
-		topicSub_drives = this->create_subscription<trajectory_msgs::msg::JointTrajectory>("/drives/joint_trajectory", 1, std::bind(&NeoRelayBoardNode::getNewVelocitiesFomTopic, this,_1));
+		topicPub_drives = this->create_publisher<sensor_msgs::msg::JointState>("drives/joint_states", 1);
+		topicSub_drives = this->create_subscription<trajectory_msgs::msg::JointTrajectory>("drives/joint_trajectory", 1, std::bind(&NeoRelayBoardNode::getNewVelocitiesFomTopic, this,_1));
 	}
 
 	if (m_bIOBoardActive)
 	{
-		topicPub_IOBoard = this->create_publisher<neo_msgs2::msg::IOBoard>("/ioboard/data", 1);
-		this->srv_SetDigOut = this->create_service<neo_srvs2::srv::IOBoardSetDigOut>("/ioboard/set_digital_output", std::bind(&NeoRelayBoardNode::serviceIOBoardSetDigOut, this, _1, _2));
+		topicPub_IOBoard = this->create_publisher<neo_msgs2::msg::IOBoard>("ioboard/data", 1);
+		this->srv_SetDigOut = this->create_service<neo_srvs2::srv::IOBoardSetDigOut>("ioboard/set_digital_output", std::bind(&NeoRelayBoardNode::serviceIOBoardSetDigOut, this, _1, _2));
 	}
 
 	if (m_bUSBoardActive)
 	{
-		topicPub_usBoard = this->create_publisher<neo_msgs2::msg::USBoard>("/usboard/measurements", 1);
+		topicPub_usBoard = this->create_publisher<neo_msgs2::msg::USBoard>("usboard/measurements", 1);
 
 		for (int i = 0; i < 16; ++i)
 		{
 			if(m_bUSBoardSensorActive[i]) {
-				topicPub_USRangeSensor[i] = this->create_publisher<sensor_msgs::msg::Range>("/usboard/sensor" + std::to_string(i + 1), 1);
+				topicPub_USRangeSensor[i] = this->create_publisher<sensor_msgs::msg::Range>("usboard/sensor" + std::to_string(i + 1), 1);
 			}
 		}
 	}
@@ -530,23 +540,7 @@ void NeoRelayBoardNode::PublishBatteryState()
 
 	// get battery voltage from relayboardv2 msg
 	int iBatteryVoltage = 0;
-	float fBatteryVoltage = 0.0;
-	float fBatteryPercentage = 0;
 	m_SerRelayBoard->getBattVoltage(&iBatteryVoltage);
-	fBatteryVoltage = iBatteryVoltage / 1000.f;
-
-	if(fBatteryVoltage > 36) {
-		const float vmin = 44.0;
-		const float vmax = 49.5;
-		fBatteryPercentage = fmin(fmax((fBatteryVoltage - vmin) / (vmax - vmin), 0), 1);
-	} else if(fBatteryVoltage > 18) {
-		const float vmin = 22.5;
-		const float vmax = 25.0;
-		fBatteryPercentage = fmin(fmax((fBatteryVoltage - vmin) / (vmax - vmin), 0), 1);
-	} else if(fBatteryVoltage >= 0 && fBatteryVoltage <= 1.001) {
-		fBatteryPercentage = fBatteryVoltage;
-		fBatteryVoltage = 48;
-	}
 
 	// get charging state from relayboardv2 msg
 	int iChargingState = 0;
@@ -577,12 +571,12 @@ void NeoRelayBoardNode::PublishBatteryState()
 	bstate_msg.header.stamp = m_tCurrentTimeStamp;
 	bstate_msg.header.frame_id = "";
 
-	bstate_msg.voltage = fBatteryVoltage;							 // float32 Voltage in Volts (Mandatory)
+	bstate_msg.voltage = iBatteryVoltage / 1000.f;							 // float32 Voltage in Volts (Mandatory)
 	bstate_msg.current = iCurrent / 10.f;									 // float32 Negative when discharging (A)  (If unmeasured NaN)
 	bstate_msg.charge = NAN;												 // float32 Current charge in Ah  (If unmeasured NaN)
 	bstate_msg.capacity = NAN;												 // float32 Capacity in Ah (last full capacity)  (If unmeasured NaN)
 	bstate_msg.design_capacity = m_fBatteryDesignCapacity;					 // float32 Capacity in Ah (design capacity)  (If unmeasured NaN)
-	bstate_msg.percentage = fBatteryPercentage;								 // float32 Charge percentage on 0 to 1 range  (If unmeasured NaN)
+	bstate_msg.percentage = NAN;											 // float32 Charge percentage on 0 to 1 range  (If unmeasured NaN)
 	bstate_msg.power_supply_health = bstate_msg.POWER_SUPPLY_HEALTH_UNKNOWN; // uint8   The battery health metric.
 	bstate_msg.power_supply_technology = m_iBatteryChemistry;				 // uint8   The battery chemistry.
 	bstate_msg.present = true;												 // bool    True if the battery is present
@@ -767,16 +761,16 @@ void NeoRelayBoardNode::PublishJointStates()
 	state.header.stamp = m_tCurrentTimeStamp - rclcpp::Duration::from_seconds(m_tMotorDelay);
 
 	// Publish Data for all possible Motors
-	state.name.resize(8);
-	state.position.resize(8);
-	state.velocity.resize(8);
+	state.name.resize(m_drivesNr);
+	state.position.resize(m_drivesNr);
+	state.velocity.resize(m_drivesNr);
 
 	// TODO Joint Names einfügen
 	// for(int i = 0; i<anz_drives; i++)  state.name[i] = joint_names[i];
 
 	// Motor Data from MSG Handler for each Motor
 	// Enc (4 Byte), EncS (4 Byte) and Status (2 Byte) for each Motor
-	for (int i = 0; i < 8; i++)
+	for (int i = 0; i < m_drivesNr; i++)
 	{
 		state.name[i] = m_Drives[i].sName.c_str();
 		m_SerRelayBoard->getMotorEnc(i, &lEnc[i]);
